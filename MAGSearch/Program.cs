@@ -12,61 +12,182 @@ using System.IO;
 
 namespace MAGSearch
 {
-    public class SearchResult
+    public class Answer
     {
-        public string Id { get; set; }
-        public string Content { get; set; }
-        public string Url { get; set; }
+        public long start { get; set; }
+        public long end { get; set; }
+        List<List<long>> ret = new List<List<long>>();
+        public void add1Hop()
+        {
+            ret.Add(new List<long>(new long[] { start, end }));
+        }
+        public void add2Hop(long id1)
+        {
+            ret.Add(new List<long>(new long[] { start, id1, end }));
+        }
+        public void add3Hop(long id1, long id2)
+        {
+            ret.Add(new List<long>(new long[] { start, id1, id2, end }));
+        }
+        public void add2Hop(List<long> l)
+        {
+            foreach (var ll in l)
+            {
+                add2Hop(ll);
+            }
+        }
+        public string toJson()
+        {
+            return JsonConvert.SerializeObject(ret);
+        }
     }
 
     public class Paper
     {
         public long Id { get; set; }
 
-        public List<long> Rid { get; set; }
+        public List<long> Rid { get; set; } = new List<long>();
 
-        public List<_AA> AA { get; set; }
+        public List<_AA> AA { get; set; } = new List<_AA>();
         public class _AA
         {
             public long AuId { get; set; }
             public long AfId { get; set; }
         }
-        public List<long> FId { get; set; }
+        public List<long> FId { get; set; } = new List<long>();
         public long CId { get; set; }
         public long JId { get; set; }
+        public int hops { get; set; }
 
-        public void show()
+        static public void show(Paper p)
         {
-            Console.WriteLine("Id:{0},CId:{1},JId:{2}", Id, CId, JId);
+            Console.WriteLine("Id:{0},CId:{1},JId:{2}", p.Id, p.CId, p.JId);
             Console.WriteLine("Rid:");
-            foreach (var r in Rid)
+            foreach (var r in p.Rid)
                 Console.WriteLine(r);
+
             Console.WriteLine("AA:");
-            foreach (var a in AA)
+            foreach (var a in p.AA)
                 Console.WriteLine("AA.AfId:{0},AA.AuId{1}", a.AfId, a.AuId);
+
             Console.WriteLine("F.Fid:");
-            try
-            {
-                foreach (var f in FId)
-                    Console.WriteLine(f);
-            }
-            catch { }
+            foreach (var f in p.FId)
+                Console.WriteLine(f);
         }
+        static public bool hasLinkRId(Paper p1, Paper p2)
+        {
+            HashSet<long> hs = new HashSet<long>();
+            if (p1.Rid.Count > 0 && p2.Rid.Count > 0)
+            {
+                foreach (var r in p1.Rid)
+                {
+                    hs.Add(r);
+                }
+                foreach (var r in p2.Rid)
+                {
+                    if (hs.Contains(r))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        static public List<long> hasLinkFId(Paper p1, Paper p2)
+        {
+            var ans = new List<long>();
+            HashSet<long> hs = new HashSet<long>();
+            if (p1.FId.Count > 0 && p2.FId.Count > 0)
+            {
+                foreach (var r in p1.FId)
+                {
+                    hs.Add(r);
+                }
+                foreach (var r in p2.FId)
+                {
+                    if (hs.Contains(r))
+                    {
+                        ans.Add(r);
+                    }
+                }
+            }
+            return ans;
+        }
+        static public List<long> hasLinkAAuId(Paper p1, Paper p2)
+        {
+            var ans = new List<long>();
+            HashSet<long> hs = new HashSet<long>();
+            if (p1.AA.Count > 0 && p2.AA.Count > 0)
+            {
+                foreach (var r in p1.AA)
+                {
+                    hs.Add(r.AuId);
+                }
+                foreach (var r in p2.AA)
+                {
+                    if (hs.Contains(r.AuId))
+                    {
+                        ans.Add(r.AuId);
+                    }
+                }
+            }
+            return ans;
+        }
+
+        static public string queryComposite(string query, long id)
+        {
+            return "Comopsite(" + query + "=" + id + ")";
+        }
+
+
+
     }
     class Program
     {
-        static List<Paper> queue = new List<Paper>();
         static bool req_event;
+        static string cquery = "Id,RId,F.FId,C.CId,J.JId,AA.AfId,AA.AuId";
+        static string rquery = "Id,AA.AuId";
+        static string irquery = "Id,RId";
+
         static void Main(string[] args)
         {
-            MakeRequest("Y=2016", "Id,RId,F.FId,C.CId,J.JId,AA.AfId,AA.AuId", 10000, 0);
-            //while (req_event) ;
-            Console.WriteLine(queue.Count);
+            Answer ans = new Answer();
+            long id1 = 2107710616;
+            long id2 = 2128635872;
+            id2 = id1;
+            ans.start = id1;
+            ans.end = id2;
+
+            // get information about start and destination
+            var q1 = MakeRequest("Id=" + id1, cquery, 1, 0);
+            var q2 = MakeRequest("Id=" + id2, cquery, 1, 0);
+
+            // 1-hop
+            if (Paper.hasLinkRId(q1[0], q2[0])) ans.add1Hop();
+
+            Console.WriteLine("开始搜索");
+            // 2-hop
+            Console.WriteLine("开始搜索CId");
+            if (q1[0].CId == q2[0].CId && q1[0].CId != 0) ans.add2Hop(q1[0].CId);   //id1->CId->id2
+            Console.WriteLine(ans.toJson());
+            Console.WriteLine("开始搜索JId");
+            if (q1[0].JId == q2[0].JId && q1[0].JId != 0) ans.add2Hop(q1[0].JId);   //id1->JId->id2
+            Console.WriteLine(ans.toJson());
+            Console.WriteLine("开始搜索FId");
+            ans.add2Hop(Paper.hasLinkFId(q1[0], q2[0]));                            //id1->FId->id2
+            Console.WriteLine(ans.toJson());
+            Console.WriteLine("开始搜索AAuId");
+            ans.add2Hop(Paper.hasLinkAAuId(q1[0], q2[0]));                          //id1->AAuId->id2
+            Console.WriteLine(ans.toJson());
+
+            // binary-3-hop
+            
+
         }
-        static async void MakeRequest(string expr, string attr, int count, int offset)
+        static List<Paper> MakeRequest(string expr, string attr, int count, int offset)
         {
             req_event = true;
-            queue.Clear();
+            var queue = new List<Paper>();
             var client = new HttpClient();
             var queryString = HttpUtility.ParseQueryString(string.Empty);
 
@@ -77,18 +198,17 @@ namespace MAGSearch
             queryString["count"] = count.ToString();
             queryString["offset"] = offset.ToString();
 
-            var uri = "https://oxfordhk.azure-api.net/academic/v1.0/evaluate?" + queryString + " &subscription-key=f7cc29509a8443c5b3a5e56b0e38b5a6";
+            var uri = "https://oxfordhk.azure-api.net/academic/v1.0/evaluate?" + queryString + "&subscription-key=f7cc29509a8443c5b3a5e56b0e38b5a6";
 
+            //Console.WriteLine(uri);
             /*
             var response = await client.GetAsync(uri);
             var body = response.Content;
 
-            //Console.WriteLine(uri);
             var str = await body.ReadAsStringAsync();
-            //Console.WriteLine(str);
-            */
             
-            HttpWebRequest myReq = (HttpWebRequest)HttpWebRequest.Create(uri);
+            */
+            HttpWebRequest myReq = (HttpWebRequest)WebRequest.Create(uri);
             HttpWebResponse HttpWResp = (HttpWebResponse)myReq.GetResponse();
             Stream myStream = HttpWResp.GetResponseStream();
             StreamReader sr;
@@ -100,9 +220,9 @@ namespace MAGSearch
             sr.Close();
             HttpWResp.Close();
             myReq.Abort();
-            
+
             //Console.WriteLine(str);
-            Console.WriteLine("抓取完成");
+            //Console.WriteLine("抓取完成");
             JObject ret = JObject.Parse(str);
             //Console.WriteLine(ret.ToString());
 
@@ -111,9 +231,10 @@ namespace MAGSearch
             foreach (JToken result in results)
             {
                 Paper p = new Paper();
-                p.Id = long.Parse(result["Id"].ToString());
-                p.Rid = JsonConvert.DeserializeObject<List<long>>(result["RId"].ToString());
-                p.AA = JsonConvert.DeserializeObject<List<Paper._AA>>(result["AA"].ToString());
+                try { p.Id = long.Parse(result["Id"].ToString()); } catch { }
+                try { p.Rid = JsonConvert.DeserializeObject<List<long>>(result["RId"].ToString()); } catch { }
+
+                try { p.AA = JsonConvert.DeserializeObject<List<Paper._AA>>(result["AA"].ToString()); } catch { }
                 try { p.JId = long.Parse(result["J"]["JId"].ToString()); } catch { }
                 try { p.CId = long.Parse(result["C"]["CId"].ToString()); } catch { }
 
@@ -131,10 +252,11 @@ namespace MAGSearch
                 }
                 catch { }
                 queue.Add(p);
-                //p.show();
+                //Paper.show(p);
             }
-            Console.WriteLine("解析完成");
+            //Console.WriteLine("解析完成");
             req_event = false;
+            return queue;
         }
     }
 }
