@@ -36,6 +36,13 @@ namespace MAGSearch
                 add2Hop(ll);
             }
         }
+        public void add3Hop(long id, List<long> l)
+        {
+            foreach (var ll in l)
+            {
+                add3Hop(id, ll);
+            }
+        }
         public string toJson()
         {
             return JsonConvert.SerializeObject(ret);
@@ -134,9 +141,9 @@ namespace MAGSearch
             return ans;
         }
 
-        static public string queryComposite(string query, long id)
+        static public string queryComposite(string q1, long id1, string q2, long id2)
         {
-            return "Comopsite(" + query + "=" + id + ")";
+            return "And(Composite(" + q1 + " = " + id1 + "), " + q2 + " = " + id2 + ")";
         }
 
 
@@ -154,13 +161,13 @@ namespace MAGSearch
             Answer ans = new Answer();
             long id1 = 2107710616;
             long id2 = 2128635872;
-            id2 = id1;
+
             ans.start = id1;
             ans.end = id2;
 
             // get information about start and destination
-            var q1 = MakeRequest("Id=" + id1, cquery, 1, 0);
-            var q2 = MakeRequest("Id=" + id2, cquery, 1, 0);
+            var q1 = AllDeserial(MakeRequest("Id=" + id1, cquery, 1, 0));
+            var q2 = AllDeserial(MakeRequest("Id=" + id2, cquery, 1, 0));
 
             // 1-hop
             if (Paper.hasLinkRId(q1[0], q2[0])) ans.add1Hop();
@@ -181,13 +188,27 @@ namespace MAGSearch
             Console.WriteLine(ans.toJson());
 
             // binary-3-hop
-            
+            getCId(q1[0], q2[0], ans);
+
+            Console.WriteLine(ans.toJson());
+        }
+        static void getCId(Paper p1, Paper p2, Answer ans)
+        {
+            foreach (var r in p2.Rid)
+            {
+                //CId
+                if (p1.CId != 0)
+                {
+                    var cidqst = MakeRequest(Paper.queryComposite("C.CId", p1.CId, "RId", r), "Id", 10000, 0);
+                    var qcid = IdDeserial(cidqst);
+                    ans.add3Hop(p1.CId, qcid);
+                }
+            }
 
         }
-        static List<Paper> MakeRequest(string expr, string attr, int count, int offset)
+        static JObject MakeRequest(string expr, string attr, int count, int offset)
         {
             req_event = true;
-            var queue = new List<Paper>();
             var client = new HttpClient();
             var queryString = HttpUtility.ParseQueryString(string.Empty);
 
@@ -200,7 +221,7 @@ namespace MAGSearch
 
             var uri = "https://oxfordhk.azure-api.net/academic/v1.0/evaluate?" + queryString + "&subscription-key=f7cc29509a8443c5b3a5e56b0e38b5a6";
 
-            //Console.WriteLine(uri);
+            Console.WriteLine(uri);
             /*
             var response = await client.GetAsync(uri);
             var body = response.Content;
@@ -226,7 +247,34 @@ namespace MAGSearch
             JObject ret = JObject.Parse(str);
             //Console.WriteLine(ret.ToString());
 
-            IList<JToken> results = ret["entities"].Children().ToList();
+            //req_event = false;
+            return ret;
+        }
+
+        static public List<long> IdDeserial(JObject json)
+        {
+            var ret = new List<long>();
+            IList<JToken> results = json["entities"].Children().ToList();
+
+            foreach (JToken result in results)
+            {
+
+                try
+                {
+                    long cur;
+                    cur = long.Parse(result["Id"].ToString());
+                    ret.Add(cur);
+                }
+                catch { }
+            }
+            //Console.WriteLine("解析完成");
+            return ret;
+        }
+
+        static public List<Paper> AllDeserial(JObject json)
+        {
+            var ret = new List<Paper>();
+            IList<JToken> results = json["entities"].Children().ToList();
 
             foreach (JToken result in results)
             {
@@ -251,12 +299,11 @@ namespace MAGSearch
                     }
                 }
                 catch { }
-                queue.Add(p);
+                ret.Add(p);
                 //Paper.show(p);
             }
             //Console.WriteLine("解析完成");
-            req_event = false;
-            return queue;
+            return ret;
         }
     }
 }
