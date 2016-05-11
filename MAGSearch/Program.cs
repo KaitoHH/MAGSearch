@@ -16,7 +16,7 @@ namespace MAGSearch
     {
         public long start { get; set; }
         public long end { get; set; }
-        List<List<long>> ret = new List<List<long>>();
+        HashSet<List<long>> ret = new HashSet<List<long>>();
         public void add1Hop()
         {
             ret.Add(new List<long>(new long[] { start, end }));
@@ -27,7 +27,9 @@ namespace MAGSearch
         }
         public void add3Hop(long id1, long id2)
         {
-            ret.Add(new List<long>(new long[] { start, id1, id2, end }));
+            var t = new List<long>(new long[] { start, id1, id2, end });
+            if (!ret.Contains(t))
+                ret.Add(t);
         }
         public void add2Hop(List<long> l)
         {
@@ -46,6 +48,11 @@ namespace MAGSearch
         public string toJson()
         {
             return JsonConvert.SerializeObject(ret);
+        }
+
+        public int count()
+        {
+            return ret.Count;
         }
     }
 
@@ -83,20 +90,10 @@ namespace MAGSearch
         }
         static public bool hasLinkRId(Paper p1, Paper p2)
         {
-            HashSet<long> hs = new HashSet<long>();
-            if (p1.Rid.Count > 0 && p2.Rid.Count > 0)
+            foreach (var r in p1.Rid)
             {
-                foreach (var r in p1.Rid)
-                {
-                    hs.Add(r);
-                }
-                foreach (var r in p2.Rid)
-                {
-                    if (hs.Contains(r))
-                    {
-                        return true;
-                    }
-                }
+                if (r == p2.Id)
+                    return true;
             }
             return false;
         }
@@ -159,8 +156,8 @@ namespace MAGSearch
         static void Main(string[] args)
         {
             Answer ans = new Answer();
-            long id1 = 2107710616;
-            long id2 = 2128635872;
+            long id1 = 2030985472;
+            long id2 = 2133644056;
 
             ans.start = id1;
             ans.end = id2;
@@ -187,23 +184,54 @@ namespace MAGSearch
             ans.add2Hop(Paper.hasLinkAAuId(q1[0], q2[0]));                          //id1->AAuId->id2
             Console.WriteLine(ans.toJson());
 
+            int startTime = System.Environment.TickCount;
             // binary-3-hop
             getCId(q1[0], q2[0], ans);
+            //getCId(q2[0], q1[0], ans);
+            int endTime = System.Environment.TickCount;
+
+            int runTime = endTime - startTime;
 
             Console.WriteLine(ans.toJson());
+            Console.WriteLine(ans.count());
+            Console.WriteLine("Time: " + runTime);
         }
         static void getCId(Paper p1, Paper p2, Answer ans)
         {
-            foreach (var r in p2.Rid)
+
+            //CId
+            if (p1.CId != 0)
             {
-                //CId
-                if (p1.CId != 0)
-                {
-                    var cidqst = MakeRequest(Paper.queryComposite("C.CId", p1.CId, "RId", r), "Id", 10000, 0);
-                    var qcid = IdDeserial(cidqst);
-                    ans.add3Hop(p1.CId, qcid);
-                }
+                var cidqst = MakeRequest(Paper.queryComposite("C.CId", p1.CId, "RId", p2.Id), "Id", 10000, 0);
+                var qcid = IdDeserial(cidqst);
+                ans.add3Hop(p1.CId, qcid);
             }
+
+            //JId
+            if (p1.JId != 0)
+            {
+                var jidqst = MakeRequest(Paper.queryComposite("J.JId", p1.JId, "RId", p2.Id), "Id", 10000, 0);
+                var qjid = IdDeserial(jidqst);
+                ans.add3Hop(p1.JId, qjid);
+            }
+
+            //FId
+            foreach (var v in p1.FId)
+            {
+                var fidqst = MakeRequest(Paper.queryComposite("F.FId", v, "RId", p2.Id), "Id", 10000, 0);
+                var qfid = IdDeserial(fidqst);
+                ans.add3Hop(v, qfid);
+            }
+
+            //AA.AuId
+            foreach (var v in p1.AA)
+            {
+                var auidqst = MakeRequest(Paper.queryComposite("AA.AuId", v.AuId, "RId", p2.Id), "Id", 10000, 0);
+                var auid = IdDeserial(auidqst);
+                ans.add3Hop(v.AuId, auid);
+            }
+            Console.WriteLine("Done" + ans.count());
+            
 
         }
         static JObject MakeRequest(string expr, string attr, int count, int offset)
@@ -221,7 +249,7 @@ namespace MAGSearch
 
             var uri = "https://oxfordhk.azure-api.net/academic/v1.0/evaluate?" + queryString + "&subscription-key=f7cc29509a8443c5b3a5e56b0e38b5a6";
 
-            Console.WriteLine(uri);
+            //Console.WriteLine(uri);
             /*
             var response = await client.GetAsync(uri);
             var body = response.Content;
