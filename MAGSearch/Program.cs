@@ -169,26 +169,26 @@ namespace MAGSearch
             // 1-hop
             if (Paper.hasLinkRId(q1[0], q2[0])) ans.add1Hop();
 
-            Console.WriteLine("开始搜索");
+            //Console.WriteLine("开始搜索");
             // 2-hop
-            Console.WriteLine("开始搜索CId");
+            //Console.WriteLine("开始搜索CId");
             if (q1[0].CId == q2[0].CId && q1[0].CId != 0) ans.add2Hop(q1[0].CId);   //id1->CId->id2
-            Console.WriteLine(ans.toJson());
-            Console.WriteLine("开始搜索JId");
+            //Console.WriteLine(ans.toJson());
+            //Console.WriteLine("开始搜索JId");
             if (q1[0].JId == q2[0].JId && q1[0].JId != 0) ans.add2Hop(q1[0].JId);   //id1->JId->id2
-            Console.WriteLine(ans.toJson());
-            Console.WriteLine("开始搜索FId");
+            //Console.WriteLine(ans.toJson());
+            //Console.WriteLine("开始搜索FId");
             ans.add2Hop(Paper.hasLinkFId(q1[0], q2[0]));                            //id1->FId->id2
-            Console.WriteLine(ans.toJson());
-            Console.WriteLine("开始搜索AAuId");
+            //Console.WriteLine(ans.toJson());
+            //Console.WriteLine("开始搜索AAuId");
             ans.add2Hop(Paper.hasLinkAAuId(q1[0], q2[0]));                          //id1->AAuId->id2
-            Console.WriteLine(ans.toJson());
+            //Console.WriteLine(ans.toJson());
 
-            int startTime = System.Environment.TickCount;
+            int startTime = Environment.TickCount;
             // binary-3-hop
-            getCId(q1[0], q2[0], ans);
+            solve3Hop(q1[0], q2[0], ans);
             //getCId(q2[0], q1[0], ans);
-            int endTime = System.Environment.TickCount;
+            int endTime = Environment.TickCount;
 
             int runTime = endTime - startTime;
 
@@ -196,7 +196,7 @@ namespace MAGSearch
             Console.WriteLine(ans.count());
             Console.WriteLine("Time: " + runTime);
         }
-        static void getCId(Paper p1, Paper p2, Answer ans)
+        static void solve3Hop(Paper p1, Paper p2, Answer ans)
         {
 
             //CId
@@ -230,9 +230,6 @@ namespace MAGSearch
                 var auid = IdDeserial(auidqst);
                 ans.add3Hop(v.AuId, auid);
             }
-            Console.WriteLine("Done" + ans.count());
-            
-
         }
         static JObject MakeRequest(string expr, string attr, int count, int offset)
         {
