@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Net.Http;
@@ -174,7 +174,7 @@ namespace MAGSearch
         {
             Answer ans = new Answer();
             long id1 = 2098249016;
-            long id2 = 2153521822;
+            long id2 = 2101368737;
 
             //long id1 = 2018949714;
             //long id2 = 2105005017;
@@ -348,7 +348,7 @@ namespace MAGSearch
                 
             foreach (var r in q2)
             {
-                if (r.Id == p1.Id) continue;
+                //if (r.Id == p1.Id) continue;
                 var list = solve2Hop(p1, r);
                 foreach (var tmp in list)
                 {
