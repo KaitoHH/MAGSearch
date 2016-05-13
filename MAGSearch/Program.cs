@@ -102,6 +102,7 @@ namespace MAGSearch
             }
             return false;
         }
+
         static public List<long> hasLinkFId(Paper p1, Paper p2)
         {
             var ans = new List<long>();
@@ -142,6 +143,17 @@ namespace MAGSearch
             }
             return ans;
         }
+        static public bool hastheAAuId(Paper p1, long p2)
+        {
+            if (p1.AA.Count > 0)
+            {
+                foreach (var r in p1.AA)
+                {
+                    if (r.AuId == p2) return true;
+                }
+            }
+            return false;
+        }
 
         static public string queryComposite(string q1, long id1, string q2, long id2)
         {
@@ -161,12 +173,13 @@ namespace MAGSearch
         static void Main(string[] args)
         {
             Answer ans = new Answer();
-            long id1 = 2030985472;
-            long id2 = 2133644056;
+            long id1 = 2098249016;
+            long id2 = 2153521822;
 
             //long id1 = 2018949714;
             //long id2 = 2105005017;
             Console.WriteLine(solve(id1, id2));
+            Console.ReadLine();
         }
 
         public static string solve(long id1, long id2)
@@ -190,6 +203,7 @@ namespace MAGSearch
                 if (q2[0].AA.Count == 0)//id->aauid
                 {
                     Console.WriteLine("id->aauid");
+                    return id2aauid(id1, id2);
                 }
                 else//id->id
                 {
@@ -219,6 +233,39 @@ namespace MAGSearch
 
             // binary-3-hop
             solve3Hop(q1[0], q2[0], ans);
+
+            int endTime = Environment.TickCount;
+
+            int runTime = endTime - startTime;
+
+            //Console.WriteLine(ans.toJson());
+            //Console.WriteLine(ans.count());
+            //Console.WriteLine("Time: " + runTime);
+            return ans.toJson();
+        }
+
+        static string id2aauid(long id1, long id2)
+        {
+            Answer ans = new Answer();
+            ans.start = id1;
+            ans.end = id2;
+
+            int startTime = Environment.TickCount;
+            // get information about start and destination
+            var q1 = AllDeserial(MakeRequest("Id=" + id1, cquery, 1, 0));
+
+
+            // 1-hop
+            if (Paper.hastheAAuId(q1[0], id2)) ans.add1Hop();
+        
+
+            // 2-hop
+            ans.add2Hop(id1_auid_hop2(q1[0], id2));
+
+            // 3-hop
+            id1_auid_hop3(q1[0], id2, ans);
+
+
 
             int endTime = Environment.TickCount;
 
@@ -285,6 +332,31 @@ namespace MAGSearch
                 }*/
             }
         }
+        static void id1_auid_hop3(Paper p1, long id2, Answer ans)
+        {
+            
+            var q2 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id2 + ")", cquery, 1, 0));
+            long theAfId = 0;
+            foreach (var r in q2[0].AA)
+            {
+                if (r.AuId == id2) theAfId = r.AfId;
+            }
+             if (theAfId != 0) foreach (var r in p1.AA)
+                {
+                    if (r.AfId == theAfId && r.AuId != id2) ans.add3Hop(r.AuId, theAfId);
+                }
+                
+            foreach (var r in q2)
+            {
+                if (r.Id == p1.Id) continue;
+                var list = solve2Hop(p1, r);
+                foreach (var tmp in list)
+                {
+                    
+                    ans.add3Hop(tmp, r.Id);
+                }
+            }
+        }
         static List<long> solve2Hop(Paper p1, Paper p2)
         {
             var list = new List<long>();
@@ -300,7 +372,19 @@ namespace MAGSearch
             list.AddRange(Paper.hasLinkAAuId(p1, p2));                          //id1->AAuId->id2
             return list;
         }
+        static List<long> id1_auid_hop2(Paper p1, long id2)
+        {
+            var list = new List<long>();
+            foreach (var r in p1.Rid)
+            {
+                var q1 = AllDeserial(MakeRequest("Id=" + r, cquery, 1, 0));
+                if (Paper.hastheAAuId(q1[0], id2))
+                    list.Add(r);
 
+            }
+            return list;
+
+        }
         static JObject MakeRequest(string expr, string attr, int count, int offset)
         {
             req_event = true;
@@ -316,11 +400,10 @@ namespace MAGSearch
 
             var uri = "https://oxfordhk.azure-api.net/academic/v1.0/evaluate?" + queryString + "&subscription-key=f7cc29509a8443c5b3a5e56b0e38b5a6";
 
-            Console.WriteLine(uri);
+          // ********//Console.WriteLine(uri);
             /*
             var response = await client.GetAsync(uri);
             var body = response.Content;
-
             var str = await body.ReadAsStringAsync();
             
             */
