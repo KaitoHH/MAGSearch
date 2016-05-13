@@ -184,13 +184,8 @@ namespace MAGSearch
         static void Main(string[] args)
         {
             Answer ans = new Answer();
-<<<<<<< HEAD
-            long id1 = 2100438523;
-            long id2 = 2063132010;
-=======
-            long id1 = 57898110;
-            long id2 = 2014261844;
->>>>>>> refs/remotes/origin/master
+            long id1 = 2251253715;
+            long id2 = 2180737804;
 
             //long id1 = 2018949714;
             //long id2 = 2105005017;
@@ -208,11 +203,7 @@ namespace MAGSearch
                 if (q2[0].AA.Count == 0)//auid->auid
                 {
                     Console.WriteLine("auid->auid");
-<<<<<<< HEAD
                     return auid2auid(id1, id2);
-=======
-                    //return auid2auid(id1, id2);
->>>>>>> refs/remotes/origin/master
                 }
                 else//auid->id
                 {
@@ -233,11 +224,6 @@ namespace MAGSearch
                     return id2id(id1, id2);
                 }
             }
-<<<<<<< HEAD
-            
-=======
-            return "";
->>>>>>> refs/remotes/origin/master
         }
 
         static string id2id(long id1, long id2)
@@ -356,7 +342,7 @@ namespace MAGSearch
         
             return ans.toJson();
         }
-<<<<<<< HEAD
+
         static string auid2auid(long id1, long id2)
         {
             Answer ans = new Answer();
@@ -389,8 +375,6 @@ namespace MAGSearch
 
             return ans.toJson();
         }
-=======
->>>>>>> refs/remotes/origin/master
         static List<long> id1_auid_hop2(Paper p1, long id2)
         {
             var list = new List<long>();
