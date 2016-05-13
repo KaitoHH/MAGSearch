@@ -154,6 +154,17 @@ namespace MAGSearch
             }
             return false;
         }
+        static public bool hastheAfId(Paper p1, long p2)
+        {
+            if (p1.AA.Count > 0)
+            {
+                foreach (var r in p1.AA)
+                {
+                    if (r.AfId == p2) return true;
+                }
+            }
+            return false;
+        }
 
         static public string queryComposite(string q1, long id1, string q2, long id2)
         {
@@ -173,8 +184,8 @@ namespace MAGSearch
         static void Main(string[] args)
         {
             Answer ans = new Answer();
-            long id1 = 2098249016;
-            long id2 = 2101368737;
+            long id1 = 2063132010;
+            long id2 = 2153521822;
 
             //long id1 = 2018949714;
             //long id2 = 2105005017;
@@ -196,6 +207,7 @@ namespace MAGSearch
                 else//auid->id
                 {
                     Console.WriteLine("auid->id");
+                    return auid2id(id1, id2);
                 }
             }
             else
@@ -238,9 +250,7 @@ namespace MAGSearch
 
             int runTime = endTime - startTime;
 
-            //Console.WriteLine(ans.toJson());
-            //Console.WriteLine(ans.count());
-            //Console.WriteLine("Time: " + runTime);
+           
             return ans.toJson();
         }
 
@@ -271,9 +281,53 @@ namespace MAGSearch
 
             int runTime = endTime - startTime;
 
-            //Console.WriteLine(ans.toJson());
-            //Console.WriteLine(ans.count());
-            //Console.WriteLine("Time: " + runTime);
+           
+            return ans.toJson();
+        }
+        static string auid2id(long id1, long id2)
+        {
+            Answer ans = new Answer();
+            ans.start = id1;
+            ans.end = id2;
+
+            int startTime = Environment.TickCount;
+            // get information about start and destination
+            var q1 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id1 + ")", cquery, 1, 0));
+            var q2 = AllDeserial(MakeRequest("Id=" + id2, cquery, 1, 0));
+            
+        
+            foreach (var v in q1)
+            {
+                if (v.Id == id2) ans.add1Hop();
+                ans.add2Hop(solve2Hop(v, q2[0]));
+                if (Paper.hasLinkRId(v, q2[0])) ans.add2Hop(v.Id);
+            }
+
+            
+            // 2-hop
+            ans.add2Hop(solve2Hop(q1[0], q2[0]));
+
+            var list = new List<long>();
+            foreach (var r in q1[0].AA)
+            {
+                if (r.AuId == id2) list.Add(r.AfId);
+            }
+            foreach (var r in q2)
+            {
+                foreach (var i in r.AA)
+                {
+                    foreach (var j in list)
+                    {
+                        if (j == i.AfId) ans.add3Hop(j, i.AuId);
+                    }
+                }
+            }
+
+            int endTime = Environment.TickCount;
+
+            int runTime = endTime - startTime;
+
+        
             return ans.toJson();
         }
         static void solve3Hop(Paper p1, Paper p2, Answer ans)
