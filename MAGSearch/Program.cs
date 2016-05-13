@@ -184,8 +184,13 @@ namespace MAGSearch
         static void Main(string[] args)
         {
             Answer ans = new Answer();
+<<<<<<< HEAD
+            long id1 = 2100438523;
+            long id2 = 2063132010;
+=======
             long id1 = 57898110;
             long id2 = 2014261844;
+>>>>>>> refs/remotes/origin/master
 
             //long id1 = 2018949714;
             //long id2 = 2105005017;
@@ -203,7 +208,11 @@ namespace MAGSearch
                 if (q2[0].AA.Count == 0)//auid->auid
                 {
                     Console.WriteLine("auid->auid");
+<<<<<<< HEAD
+                    return auid2auid(id1, id2);
+=======
                     //return auid2auid(id1, id2);
+>>>>>>> refs/remotes/origin/master
                 }
                 else//auid->id
                 {
@@ -224,7 +233,11 @@ namespace MAGSearch
                     return id2id(id1, id2);
                 }
             }
+<<<<<<< HEAD
+            
+=======
             return "";
+>>>>>>> refs/remotes/origin/master
         }
 
         static string id2id(long id1, long id2)
@@ -343,6 +356,41 @@ namespace MAGSearch
         
             return ans.toJson();
         }
+<<<<<<< HEAD
+        static string auid2auid(long id1, long id2)
+        {
+            Answer ans = new Answer();
+            ans.start = id1;
+            ans.end = id2;
+
+            int startTime = Environment.TickCount;
+            // get information about start and destination
+            var q1 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id1 + ")", cquery, 1, 0));
+            var q2 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id2 + ")", cquery, 1, 0));
+
+            var list = new List<long>();
+            foreach (var r in q1[0].AA)
+            {
+                if (r.AuId == id1 && r.AfId > 0) list.Add(r.AfId);
+            }
+            foreach (var v in q2[0].AA)
+            {
+                if (v.AuId == id2)
+                    foreach (var r in list)
+                    {
+                        if (v.AfId == r) { ans.add2Hop(r); break; }
+                    }
+            }
+
+            int endTime = Environment.TickCount;
+
+            int runTime = endTime - startTime;
+
+
+            return ans.toJson();
+        }
+=======
+>>>>>>> refs/remotes/origin/master
         static List<long> id1_auid_hop2(Paper p1, long id2)
         {
             var list = new List<long>();
