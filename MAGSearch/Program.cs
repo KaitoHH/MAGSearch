@@ -21,13 +21,14 @@ namespace MAGSearch
 
         static void Main(string[] args)
         {
-            long id1 = 2126125555;
-            long id2 = 2153635508;
+            long id1 = 57898110;
+            long id2 = 2014261844;
 
             int startTime = Environment.TickCount;
             Console.WriteLine(solve(id1, id2));
             int endTime = Environment.TickCount;
             Console.WriteLine(endTime - startTime + "ms");
+            Console.ReadLine();
 
         }
 
@@ -94,14 +95,14 @@ namespace MAGSearch
             var q1 = AllDeserial(MakeRequest("Id=" + id1, cquery, 1, 0));
 
 
-            // 1-hop
+            // 1-hop paper->author
             if (Paper.hastheAAuId(q1[0], id2)) ans.add1Hop();
 
 
-            // 2-hop
+            // 2-hop paper->paper->author
             ans.add2Hop(id1_auid_hop2(q1[0], id2));
 
-            // 3-hop
+            // 3-hop paper->...->paper->author || paper->author->afid->author
             id1_auid_hop3(q1[0], id2, ans);
 
             return ans.toJson();
@@ -111,45 +112,49 @@ namespace MAGSearch
         {
             int startTime = Environment.TickCount;
             // get information about start and destination
-            var q1 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id1 + ")", cquery, 1, 0));
-            var q2 = AllDeserial(MakeRequest("Id=" + id2, cquery, 1, 0));
+            var q1 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id1 + ")", cquery, 10000, 0)); //get all the paper written by the author
+            var q2 = AllDeserial(MakeRequest("Id=" + id2, cquery, 1, 0)); //get the target paper
 
 
-            foreach (var v in q1)
+            foreach (var v in q1) //author->paper
             {
-                if (v.Id == id2) ans.add1Hop();
+                if (v.Id == id2) ans.add1Hop(); // author->paper
+                if (v.Rid.Contains(id2)) ans.add2Hop(v.Id); //author->paper->paper
                 var mylist = new List<long>();
-                mylist = id_id_2Hop(v, q2[0]);
+                mylist = id_id_2Hop(v, q2[0]); //author->paper->...->paper
                 foreach (var lis in mylist)
                 {
                     ans.add3Hop(v.Id, lis);
                 }
-                if (Paper.hasLinkRId(v, q2[0])) ans.add2Hop(v.Id);
+
             }
 
 
-            var list = new List<long>();
-            foreach (var r in q1[0].AA)
-            {
-                if (r.AuId == id2 && r.AfId > 0) list.Add(r.AfId);
-            }
-            foreach (var r in q2)
-            {
-                foreach (var i in r.AA)
-                {
-                    foreach (var j in list)
-                    {
-                        if (j == i.AfId) ans.add3Hop(i.AfId, i.AuId);
-                    }
-                }
-            }
+            var list = new List<long>();//author->afid->author->paper
             foreach (var v in q1)
             {
-                foreach (var r in v.Rid)
+                foreach (var r in v.AA)
                 {
-                    var q3 = AllDeserial(MakeRequest("Id=" + r, cquery, 1, 0));
-                    if (Paper.hastheAAuId(q3[0], id2))
-                        ans.add3Hop(v.Id, r);
+                    if (r.AuId == id1 && r.AfId > 0) list.Add(r.AfId);
+                }
+            }
+
+            foreach (var i in q2[0].AA)
+            {
+                foreach (var j in list)
+                {
+                    if (j == i.AfId) { ans.add3Hop(i.AfId, i.AuId); break; }
+                }
+            }
+
+            foreach (var v in q1)  // author->paper->paper->paper
+            {
+
+                var cidqst = MakeRequest("RId=" + id2, "Id", 10000, 0);
+                var qcid = IdDeserial(cidqst);
+                foreach (var c in qcid)
+                {
+                    if (v.Rid.Contains(c)) ans.add3Hop(v.Id, c);
                 }
 
             }
@@ -161,42 +166,62 @@ namespace MAGSearch
         {
 
             // get information about start and destination
-            var q1 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id1 + ")", cquery, 1, 0));
-            var q2 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id2 + ")", cquery, 1, 0));
+            var q1 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id1 + ")", cquery, 10000, 0)); // get all the paper written by the id1
+            var q2 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id2 + ")", cquery, 10000, 0)); // get all the paper written by the id2
 
-            var list = new List<long>();
-            foreach (var r in q1[0].AA)
+            var list = new List<long>(); // author->afid->author
+            foreach (var v in q1)
             {
-                if (r.AuId == id1 && r.AfId > 0) list.Add(r.AfId);
+                foreach (var r in v.AA)
+                {
+                    if (r.AuId == id1 && r.AfId > 0) list.Add(r.AfId);
+                }
             }
-            foreach (var v in q2[0].AA)
+
+            foreach (var v in q2)
             {
-                if (v.AuId == id2)
-                    foreach (var r in list)
-                    {
-                        if (v.AfId == r) { ans.add2Hop(r); break; }
-                    }
+                foreach (var r in v.AA)
+                {
+                    if (r.AuId == id2)
+                        foreach (var l in list)
+                        {
+                            if (r.AfId == l) { ans.add2Hop(l); break; }
+
+                        }
+
+                }
             }
+
+            foreach (var v1 in q1)
+            {
+                foreach (var v2 in q2)
+                {
+                    if (v1.Id == v2.Id) ans.add2Hop(v1.Id); // author->paper->author
+                    if (Paper.hasLinkRId(v1, v2)) ans.add3Hop(v1.Id, v2.Id); // author->paper->paper->author;
+                }
+            }
+
+
 
             return ans.toJson();
         }
 
-        static List<long> id1_auid_hop2(Paper p1, long id2)
+        static List<long> id1_auid_hop2(Paper p1, long id2) // solve paper->paper->author
         {
             var list = new List<long>();
             foreach (var r in p1.Rid)
             {
-                var q1 = AllDeserial(MakeRequest("Id=" + r, cquery, 1, 0));
-                if (Paper.hastheAAuId(q1[0], id2))
-                    list.Add(r);
+                var cidqst = MakeRequest(Paper.queryComposite("AA.auid", id2, "Id", r), "Id", 10000, 0);
+                var qcid = IdDeserial(cidqst);
+                list.Add(r);
 
             }
             return list;
         }
         static void id1_auid_hop3(Paper p1, long id2, Answer ans)
         {
-            var q2 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id2 + ")", cquery, 10000, 0));
-            var list = new List<long>();
+            var q2 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id2 + ")", cquery, 10000, 0)); //get all the paper written by the author
+            var list = new List<long>(); // paper->author->afid->author
             foreach (var v in q2)
             {
                 foreach (var r in v.AA)
@@ -213,9 +238,9 @@ namespace MAGSearch
                 }
 
             }
-            foreach (var r in q2)
+            foreach (var r in q2) //paper->...paper->author
             {
-                //if (r.Id == p1.Id) continue;
+
                 var list2 = id_id_2Hop(p1, r);
 
                 foreach (var tmp in list2)
@@ -223,14 +248,14 @@ namespace MAGSearch
                     ans.add3Hop(tmp, r.Id);
                 }
             }
-            foreach (var v in p1.Rid)
+            foreach (var v in p1.Rid) //paper->paper->paper->author
             {
                 var q = AllDeserial(MakeRequest("Id=" + v, cquery, 1, 0));
-                foreach (var r in q[0].Rid)
+
+                foreach (var r in q2)
                 {
-                    var q1 = AllDeserial(MakeRequest("Id=" + r, cquery, 1, 0));
-                    if (Paper.hastheAAuId(q1[0], id2))
-                        ans.add3Hop(v, r);
+                    if (q[0].Rid.Contains(r.Id))
+                        ans.add3Hop(v, r.Id);
                 }
             }
         }
@@ -243,6 +268,7 @@ namespace MAGSearch
             list.AddRange(Paper.hasLinkAAuId(p1, p2));               //id1->AAuId->id2
             return list;
         }
+
 
         static void id_id_3Hop(Paper p1, Paper p2, Answer ans)
         {
@@ -290,7 +316,7 @@ namespace MAGSearch
                 if (q[0].Rid.Contains(p2.Id)) ans.add2Hop(v);
 
                 //id1->id3->id4->id2
-                foreach(var id4 in p2rid)
+                foreach (var id4 in p2rid)
                 {
                     if (q[0].Rid.Contains(id4.Id))
                         ans.add3Hop(v, id4.Id);

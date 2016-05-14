@@ -121,7 +121,5 @@ namespace MAGSearch
             return "And(Composite(" + q1 + " = " + id1 + "), " + q2 + " = " + id2 + ")";
         }
 
-
-
     }
 }
