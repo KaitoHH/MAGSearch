@@ -21,14 +21,14 @@ namespace MAGSearch
 
         static void Main(string[] args)
         {
-            long id1 = 57898110;
-            long id2 = 2014261844;
+            long id1 = 2332023333;
+            long id2 = 57898110;
 
             int startTime = Environment.TickCount;
             Console.WriteLine(solve(id1, id2));
             int endTime = Environment.TickCount;
             Console.WriteLine(endTime - startTime + "ms");
-            Console.ReadLine();
+            //Console.ReadLine();
 
         }
 
@@ -37,8 +37,8 @@ namespace MAGSearch
             Answer ans = new Answer();
             ans.start = id1;
             ans.end = id2;
-            var q1 = AllDeserial(MakeRequest("Id=" + id1, cquery, 1, 0));
-            var q2 = AllDeserial(MakeRequest("Id=" + id2, cquery, 1, 0));
+            var q1 = AllDeserial(MakeRequest("Id=" + id1, rquery, 1, 0));
+            var q2 = AllDeserial(MakeRequest("Id=" + id2, rquery, 1, 0));
 
             string ret = "Not Implemeted";
             if (q1[0].AA.Count == 0)
@@ -110,7 +110,7 @@ namespace MAGSearch
 
         static string auid2id(long id1, long id2, Answer ans)
         {
-            int startTime = Environment.TickCount;
+
             // get information about start and destination
             var q1 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id1 + ")", cquery, 10000, 0)); //get all the paper written by the author
             var q2 = AllDeserial(MakeRequest("Id=" + id2, cquery, 1, 0)); //get the target paper
@@ -130,7 +130,7 @@ namespace MAGSearch
             }
 
 
-            var list = new List<long>();//author->afid->author->paper
+            var list = new HashSet<long>();//author->afid->author->paper
             foreach (var v in q1)
             {
                 foreach (var r in v.AA)
@@ -141,10 +141,8 @@ namespace MAGSearch
 
             foreach (var i in q2[0].AA)
             {
-                foreach (var j in list)
-                {
-                    if (j == i.AfId) { ans.add3Hop(i.AfId, i.AuId); break; }
-                }
+                if (list.Contains(i.AfId))
+                    ans.add3Hop(i.AfId, i.AuId);
             }
 
             foreach (var v in q1)  // author->paper->paper->paper
@@ -169,7 +167,7 @@ namespace MAGSearch
             var q1 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id1 + ")", cquery, 10000, 0)); // get all the paper written by the id1
             var q2 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id2 + ")", cquery, 10000, 0)); // get all the paper written by the id2
 
-            var list = new List<long>(); // author->afid->author
+            var list = new HashSet<long>(); // author->afid->author
             foreach (var v in q1)
             {
                 foreach (var r in v.AA)
@@ -182,13 +180,8 @@ namespace MAGSearch
             {
                 foreach (var r in v.AA)
                 {
-                    if (r.AuId == id2)
-                        foreach (var l in list)
-                        {
-                            if (r.AfId == l) { ans.add2Hop(l); break; }
-
-                        }
-
+                    if (r.AuId == id2 && list.Contains(r.AfId))
+                        ans.add2Hop(r.AfId);
                 }
             }
 
@@ -200,9 +193,6 @@ namespace MAGSearch
                     if (Paper.hasLinkRId(v1, v2)) ans.add3Hop(v1.Id, v2.Id); // author->paper->paper->author;
                 }
             }
-
-
-
             return ans.toJson();
         }
 
@@ -221,7 +211,7 @@ namespace MAGSearch
         static void id1_auid_hop3(Paper p1, long id2, Answer ans)
         {
             var q2 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id2 + ")", cquery, 10000, 0)); //get all the paper written by the author
-            var list = new List<long>(); // paper->author->afid->author
+            var list = new HashSet<long>(); // paper->author->afid->author
             foreach (var v in q2)
             {
                 foreach (var r in v.AA)
@@ -232,12 +222,10 @@ namespace MAGSearch
 
             foreach (var r in p1.AA)
             {
-                foreach (var t in list)
-                {
-                    if (r.AfId == t) ans.add3Hop(r.AuId, r.AfId);
-                }
-
+                if (list.Contains(r.AfId))
+                    ans.add3Hop(r.AuId, r.AfId);
             }
+
             foreach (var r in q2) //paper->...paper->author
             {
 
@@ -250,7 +238,7 @@ namespace MAGSearch
             }
             foreach (var v in p1.Rid) //paper->paper->paper->author
             {
-                var q = AllDeserial(MakeRequest("Id=" + v, cquery, 1, 0));
+                var q = AllDeserial(MakeRequest("Id=" + v, irquery, 1, 0));
 
                 foreach (var r in q2)
                 {
@@ -268,7 +256,6 @@ namespace MAGSearch
             list.AddRange(Paper.hasLinkAAuId(p1, p2));               //id1->AAuId->id2
             return list;
         }
-
 
         static void id_id_3Hop(Paper p1, Paper p2, Answer ans)
         {
@@ -340,12 +327,6 @@ namespace MAGSearch
             var uri = "https://oxfordhk.azure-api.net/academic/v1.0/evaluate?" + queryString + "&subscription-key=f7cc29509a8443c5b3a5e56b0e38b5a6";
 
             //Console.WriteLine(uri);
-            /*
-            var response = await client.GetAsync(uri);
-            var body = response.Content;
-            var str = await body.ReadAsStringAsync();
-            
-            */
             HttpWebRequest myReq = (HttpWebRequest)WebRequest.Create(uri);
             HttpWebResponse HttpWResp = (HttpWebResponse)myReq.GetResponse();
             Stream myStream = HttpWResp.GetResponseStream();
@@ -359,12 +340,7 @@ namespace MAGSearch
             HttpWResp.Close();
             myReq.Abort();
 
-            //Console.WriteLine(str);
-            //Console.WriteLine("抓取完成");
             JObject ret = JObject.Parse(str);
-            //Console.WriteLine(ret.ToString());
-
-            //req_event = false;
             return ret;
         }
 
@@ -384,7 +360,6 @@ namespace MAGSearch
                 }
                 catch { }
             }
-            //Console.WriteLine("解析完成");
             return ret;
         }
 
@@ -409,9 +384,7 @@ namespace MAGSearch
                     p.FId = new List<long>();
                     foreach (var ffid in fid)
                     {
-                        //Console.WriteLine(ffid);
                         string s = ffid["FId"].ToString();
-                        //Console.WriteLine(s);
                         p.FId.Add(long.Parse(s));
                     }
                 }
@@ -419,7 +392,6 @@ namespace MAGSearch
                 ret.Add(p);
                 //Paper.show(p);
             }
-            //Console.WriteLine("解析完成");
             return ret;
         }
     }
