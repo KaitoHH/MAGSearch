@@ -21,8 +21,8 @@ namespace MAGSearch
 
         static void Main(string[] args)
         {
-            long id1 = 2153635508;
-            long id2 = 2126125555;
+            long id1 = 2126125555;
+            long id2 = 2153635508;
 
             int startTime = Environment.TickCount;
             Console.WriteLine(solve(id1, id2));
@@ -279,25 +279,22 @@ namespace MAGSearch
                 ans.add3Hop(v.AuId, auid);
             }
 
+            var p2rid = AllDeserial(MakeRequest("RId=" + p2.Id, cquery, 100000, 0));
             foreach (var v in p1.Rid)
             {
                 var q = AllDeserial(MakeRequest("Id=" + v, cquery, 1, 0));
                 var l = id_id_2Hop(q[0], p2);
                 if (l.Count > 0) ans.add3Hop(v, l);
 
-
+                //id1->id3->id2
                 if (q[0].Rid.Contains(p2.Id)) ans.add2Hop(v);
-                //Console.WriteLine(ans.count());
 
-                // 以下代码完整 然而太慢
                 //id1->id3->id4->id2
-                /*foreach (var r in q[0].Rid)
+                foreach(var id4 in p2rid)
                 {
-                    var ridqst = MakeRequest("And(Id=" + r + ",RId=" + p2.Id + ")", "Id", 1, 0);
-                    var rfid = IdDeserial(ridqst);
-                    ans.add3Hop(v, rfid);
-                    Console.WriteLine(ans.count());
-                }*/
+                    if (q[0].Rid.Contains(id4.Id))
+                        ans.add3Hop(v, id4.Id);
+                }
 
             }
         }
