@@ -28,7 +28,7 @@ namespace MAGSearch
             Console.WriteLine(solve(id1, id2));
             int endTime = Environment.TickCount;
             Console.WriteLine(endTime - startTime + "ms");
-            Console.ReadLine();
+
         }
 
         public static string solve(long id1, long id2)
@@ -39,37 +39,39 @@ namespace MAGSearch
             var q1 = AllDeserial(MakeRequest("Id=" + id1, cquery, 1, 0));
             var q2 = AllDeserial(MakeRequest("Id=" + id2, cquery, 1, 0));
 
+            string ret = "Not Implemeted";
             if (q1[0].AA.Count == 0)
             {
-                if (q2[0].AA.Count == 0)//auid->auid
+                if (q2[0].AA.Count == 0)
                 {
                     Console.WriteLine("auid->auid");
-                    return auid2auid(id1, id2, ans);
+                    ret = auid2auid(id1, id2, ans);
                 }
-                else//auid->id
+                else
                 {
                     Console.WriteLine("auid->id");
-                    return auid2id(id1, id2, ans);
+                    ret = auid2id(id1, id2, ans);
                 }
             }
             else
             {
-                if (q2[0].AA.Count == 0)//id->aauid
+                if (q2[0].AA.Count == 0)
                 {
                     Console.WriteLine("id->aauid");
-                    return id2auid(id1, id2, ans);
+                    ret = id2auid(id1, id2, ans);
                 }
-                else//id->id
+                else
                 {
                     Console.WriteLine("id->id");
-                    return id2id(id1, id2, ans);
+                    ret = id2id(id1, id2, ans);
                 }
             }
+            Console.WriteLine(ans.count());
+            return ret;
         }
 
         static string id2id(long id1, long id2, Answer ans)
         {
-
             // get information about start and destination
             var q1 = AllDeserial(MakeRequest("Id=" + id1, cquery, 1, 0));
             var q2 = AllDeserial(MakeRequest("Id=" + id2, cquery, 1, 0));
@@ -80,7 +82,7 @@ namespace MAGSearch
             // 2-hop
             ans.add2Hop(id_id_2Hop(q1[0], q2[0]));
 
-            // binary-3-hop
+            // 3-hop
             id_id_3Hop(q1[0], q2[0], ans);
 
             return ans.toJson();
@@ -88,7 +90,6 @@ namespace MAGSearch
 
         static string id2auid(long id1, long id2, Answer ans)
         {
-
             // get information about start and destination
             var q1 = AllDeserial(MakeRequest("Id=" + id1, cquery, 1, 0));
 
@@ -177,7 +178,6 @@ namespace MAGSearch
                     }
             }
 
-
             return ans.toJson();
         }
 
@@ -195,7 +195,6 @@ namespace MAGSearch
         }
         static void id1_auid_hop3(Paper p1, long id2, Answer ans)
         {
-
             var q2 = AllDeserial(MakeRequest("Composite(AA.AuId=" + id2 + ")", cquery, 10000, 0));
             var list = new List<long>();
             foreach (var v in q2)
@@ -214,7 +213,6 @@ namespace MAGSearch
                 }
 
             }
-
             foreach (var r in q2)
             {
                 //if (r.Id == p1.Id) continue;
@@ -241,8 +239,8 @@ namespace MAGSearch
             var list = new List<long>();
             if (p1.CId == p2.CId && p1.CId != 0) list.Add(p1.CId);   //id1->CId->id2
             if (p1.JId == p2.JId && p1.JId != 0) list.Add(p1.JId);   //id1->JId->id2
-            list.AddRange(Paper.hasLinkFId(p1, p2));                            //id1->FId->id2
-            list.AddRange(Paper.hasLinkAAuId(p1, p2));                          //id1->AAuId->id2
+            list.AddRange(Paper.hasLinkFId(p1, p2));                 //id1->FId->id2
+            list.AddRange(Paper.hasLinkAAuId(p1, p2));               //id1->AAuId->id2
             return list;
         }
 
