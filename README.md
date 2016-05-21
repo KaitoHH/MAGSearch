@@ -1,5 +1,5 @@
 # MAGSearch
-**The problem description is copied from [here](https://studentclub.msra.cn/bop2016/topic/), from beauty of programming 2016, by Microsoft**.
+**The problem description is copied from [here](https://studentclub.msra.cn/bop2016/topic/), from beauty of programming 2016, by Microsoft Student Club**.
 
 ## Description
 Microsoft Academic Graph (MAG) is a large heterogeneous graph containing entities such as authors, papers, journals, conferences and relations between them. Microsoft provides Academic Knowledge API for this contest. The Entity attributes are defined here.
@@ -16,5 +16,5 @@ The test cases are not available before the final evaluation. When the evaluatio
 where Ni is the size of the solution (the total number of correct paths) for Qi , Ki is the total number of paths returned by the REST service, Mi is the number of distinct correct paths returned by the REST service.
 
 ## Our result
-- We had a really hard time working on this problem, and finally our team got 74 of nearly 250 teams. ehm.. it's a not good and not bad solutions, we find all the paths, but stil get an unsatisfactory due to the poor effencicy.
+- We had a really hard time working on this problem, and finally our team ranked 74 of nearly 250 teams. ehm.. it's a not good and not bad solutions, we find all the paths, but stil get an unsatisfactory due to the poor effencicy.
 - However we stil decide to share all the code for learning and communicating :)
