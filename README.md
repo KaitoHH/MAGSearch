@@ -16,5 +16,5 @@ The test cases are not available before the final evaluation. When the evaluatio
 where Ni is the size of the solution (the total number of correct paths) for Qi , Ki is the total number of paths returned by the REST service, Mi is the number of distinct correct paths returned by the REST service.
 
 ## Our result
-- We had a really hard time working on this problem, and finally our team ranked 74 of nearly 250 teams. ehm.. it's a not good and not bad solutions, we find all the paths, but stil get an unsatisfactory due to the poor effencicy.
-- However we stil decide to share all the code for learning and communicating :)
+- We had a really hard time working on this problem, and finally our team ranked 74 of nearly 250 teams. ehm.. it's a not good and not bad solution, we find all the paths, but still get an unsatisfactory due to poor effencicy.
+- However we still decide to share all the code for learning and communicating :)
